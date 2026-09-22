@@ -7,37 +7,38 @@
 //This simultaneous transformation allows your program to run much faster, especially when rendering
 //geometry with millions of vertices.
 
-uniform mat4 u_Model;       // The matrix that defines the transformation of the
-                            // object we're rendering. In this assignment,
-                            // this will be the result of traversing your scene graph.
+uniform mat4 u_Model; // The matrix that defines the transformation of the
+// object we're rendering. In this assignment,
+// this will be the result of traversing your scene graph.
 
-uniform mat4 u_ModelInvTr;  // The inverse transpose of the model matrix.
-                            // This allows us to transform the object's normals properly
-                            // if the object has been non-uniformly scaled.
+uniform mat4 u_ModelInvTr; // The inverse transpose of the model matrix.
+// This allows us to transform the object's normals properly
+// if the object has been non-uniformly scaled.
 
-uniform mat4 u_ViewProj;    // The matrix that defines the camera's transformation.
-                            // We've written a static matrix for you to use for HW2,
-                            // but in HW3 you'll have to generate one yourself
+uniform mat4 u_ViewProj; // The matrix that defines the camera's transformation.
+// We've written a static matrix for you to use for HW2,
+// but in HW3 you'll have to generate one yourself
 
 uniform uint u_Frame;
 
-in vec4 vs_Pos;             // The array of vertex positions passed to the shader
+in vec4 vs_Pos; // The array of vertex positions passed to the shader
 
-in vec4 vs_Nor;             // The array of vertex normals passed to the shader
+in vec4 vs_Nor; // The array of vertex normals passed to the shader
 
-in vec4 vs_Col;             // The array of vertex colors passed to the shader.
+in vec4 vs_Col; // The array of vertex colors passed to the shader.
 
-out vec4 fs_Nor;            // The array of normals that has been transformed by u_ModelInvTr. This is implicitly passed to the fragment shader.
-out vec4 fs_LightVec;       // The direction in which our virtual light lies, relative to each vertex. This is implicitly passed to the fragment shader.
-out vec4 fs_Col;            // The color of each vertex. This is implicitly passed to the fragment shader.
+out vec4 fs_Nor; // The array of normals that has been transformed by u_ModelInvTr. This is implicitly passed to the fragment shader.
+out vec4 fs_LightVec; // The direction in which our virtual light lies, relative to each vertex. This is implicitly passed to the fragment shader.
+out vec4 fs_Col; // The color of each vertex. This is implicitly passed to the fragment shader.
+out vec4 fs_posW;
 
 const vec4 lightPos = vec4(5, 5, 3, 1); //The position of our virtual light, which is used to compute the shading of
-                                        //the geometry in the fragment shader.
+//the geometry in the fragment shader.
 
 // Matrix for breaking grid alignment in 3D noise
-const mat3 m3 = mat3( 0.00,  0.80,  0.60,
-                     -0.80,  0.36, -0.48,
-                     -0.60, -0.48,  0.64 );
+const mat3 m3 = mat3(0.00, 0.80, 0.60,
+        -0.80, 0.36, -0.48,
+        -0.60, -0.48, 0.64);
 
 float hash3Scalar(vec3 p3) {
     p3 = fract(p3 * 0.1031);
@@ -46,34 +47,34 @@ float hash3Scalar(vec3 p3) {
 }
 
 // from IQ's blog
-float noised1( in vec3 x )
+float noised1(in vec3 x)
 {
     vec3 p = floor(x);
     vec3 w = fract(x);
 
-    vec3 u = w*w*w*(w*(w*6.0-15.0)+10.0);
+    vec3 u = w * w * w * (w * (w * 6.0 - 15.0) + 10.0);
     // vec3 du = 30.0*w*w*(w*(w-1.0)+2.0);
-    vec3 du = 30.0*w*w*(w*(w-2.0)+1.0);
+    vec3 du = 30.0 * w * w * (w * (w - 2.0) + 1.0);
 
-    float a = hash3Scalar( p+vec3(0,0,0) );
-    float b = hash3Scalar( p+vec3(1,0,0) );
-    float c = hash3Scalar( p+vec3(0,1,0) );
-    float d = hash3Scalar( p+vec3(1,1,0) );
-    float e = hash3Scalar( p+vec3(0,0,1) );
-    float f = hash3Scalar( p+vec3(1,0,1) );
-    float g = hash3Scalar( p+vec3(0,1,1) );
-    float h = hash3Scalar( p+vec3(1,1,1) );
+    float a = hash3Scalar(p + vec3(0, 0, 0));
+    float b = hash3Scalar(p + vec3(1, 0, 0));
+    float c = hash3Scalar(p + vec3(0, 1, 0));
+    float d = hash3Scalar(p + vec3(1, 1, 0));
+    float e = hash3Scalar(p + vec3(0, 0, 1));
+    float f = hash3Scalar(p + vec3(1, 0, 1));
+    float g = hash3Scalar(p + vec3(0, 1, 1));
+    float h = hash3Scalar(p + vec3(1, 1, 1));
 
-    float k0 =   a;
-    float k1 =   b - a;
-    float k2 =   c - a;
-    float k3 =   e - a;
-    float k4 =   a - b - c + d;
-    float k5 =   a - c - e + g;
-    float k6 =   a - b - e + f;
-    float k7 = - a + b + c - d + e - f - g + h;
+    float k0 = a;
+    float k1 = b - a;
+    float k2 = c - a;
+    float k3 = e - a;
+    float k4 = a - b - c + d;
+    float k5 = a - c - e + g;
+    float k6 = a - b - e + f;
+    float k7 = -a + b + c - d + e - f - g + h;
 
-    return -1.0+2.0*(k0 + k1*u.x + k2*u.y + k3*u.z + k4*u.x*u.y + k5*u.y*u.z + k6*u.z*u.x + k7*u.x*u.y*u.z);
+    return -1.0 + 2.0 * (k0 + k1 * u.x + k2 * u.y + k3 * u.z + k4 * u.x * u.y + k5 * u.y * u.z + k6 * u.z * u.x + k7 * u.x * u.y * u.z);
 }
 
 float fbm(vec3 x, int octaves) {
@@ -92,7 +93,8 @@ float fbm(vec3 x, int octaves) {
 
 vec3 displace(vec3 pos) {
     const int step = 20;
-    const float scale = 10.0;
+    const float scale = 3.0;
+    const int octaves = 3;
 
     float frame = floor(float(u_Frame) / float(step)) * float(step);
     float time = frame * 0.005;
@@ -103,28 +105,45 @@ vec3 displace(vec3 pos) {
     float x = (1.0 - length(pos.xz));
     pos += strength * vec3(0, 1, 0) * x;
 
-    float offset = fbm(s, 3);
+    float offset = fbm(s, octaves);
     offset = offset * 0.5 + 0.5;
     return pos + vec3(0, 1, 0) * offset * strength;
 }
 
 void main()
 {
-    fs_Col = vs_Col;                         // Pass the vertex colors to the fragment shader for interpolation
+    fs_Col = vs_Col; // Pass the vertex colors to the fragment shader for interpolation
 
     mat3 invTranspose = mat3(u_ModelInvTr);
-    fs_Nor = vec4(invTranspose * vec3(vs_Nor), 0);          // Pass the vertex normals to the fragment shader for interpolation.
-                                                            // Transform the geometry's normals by the inverse transpose of the
-                                                            // model matrix. This is necessary to ensure the normals remain
-                                                            // perpendicular to the surface after the surface is transformed by
-                                                            // the model matrix.
+    // Transform the geometry's normals by the inverse transpose of the
+    // model matrix. This is necessary to ensure the normals remain
+    // perpendicular to the surface after the surface is transformed by
+    // the model matrix.
+
+    vec3 p = vs_Pos.xyz;
+    vec3 p2 = displace(p);
+    float eps = 0.01;
+
+    vec3 n = invTranspose * vec3(vs_Nor);
+    vec3 tan = normalize(cross(n, vec3(0, 0, 1)));
+    if (length(tan) < 0.01)
+    {
+        tan = normalize(cross(n, vec3(0, 1, 0)));
+    }
+    vec3 bit = normalize(cross(n, tan));
+
+    vec3 dtan = displace(p + eps * tan) - p2;
+    vec3 dbit = displace(p + eps * bit) - p2;
+
+    fs_Nor = vec4(normalize(cross(dtan, dbit)), 0.0);
 
 
-    vec3 pos = displace(vs_Pos.xyz);
-    vec4 modelposition = u_Model * vec4(pos, 1.0);   // Temporarily store the transformed vertex positions for use below
+    // vec3 pos = vs_Pos.xyz;
+    vec4 modelposition = u_Model * vec4(p2, 1.0); // Temporarily store the transformed vertex positions for use below
 
-    fs_LightVec = lightPos - modelposition;  // Compute the direction in which the light source lies
+    fs_LightVec = lightPos - modelposition; // Compute the direction in which the light source lies
+    fs_posW = modelposition;
 
-    gl_Position = u_ViewProj * modelposition;// gl_Position is a built-in variable of OpenGL which is
-                                             // used to render the final positions of the geometry's vertices
+    gl_Position = u_ViewProj * modelposition; // gl_Position is a built-in variable of OpenGL which is
+    // used to render the final positions of the geometry's vertices
 }

@@ -1,4 +1,4 @@
-import { vec4, mat4 } from "gl-matrix";
+import { vec4, mat4, vec3 } from "gl-matrix";
 import Drawable from "./Drawable";
 import { gl } from "../../globals";
 
@@ -30,6 +30,7 @@ class ShaderProgram {
   unifViewProj: WebGLUniformLocation;
   unifColor: WebGLUniformLocation;
   unifFrame: WebGLUniformLocation;
+  unifCamPos: WebGLUniformLocation;
 
   constructor(shaders: Array<Shader>) {
     this.prog = gl.createProgram();
@@ -50,6 +51,7 @@ class ShaderProgram {
     this.unifViewProj = gl.getUniformLocation(this.prog, "u_ViewProj");
     this.unifColor = gl.getUniformLocation(this.prog, "u_Color");
     this.unifFrame = gl.getUniformLocation(this.prog, "u_Frame");
+    this.unifCamPos = gl.getUniformLocation(this.prog, "u_CamPos");
   }
 
   use() {
@@ -84,6 +86,13 @@ class ShaderProgram {
     this.use();
     if (this.unifFrame !== -1) {
       gl.uniform1ui(this.unifFrame, f);
+    }
+  }
+
+  setCamPos(camPos: vec3) {
+    this.use();
+    if (this.unifCamPos !== -1) {
+      gl.uniform3fv(this.unifCamPos, camPos);
     }
   }
 

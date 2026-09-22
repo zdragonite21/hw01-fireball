@@ -33,7 +33,8 @@ class OpenGLRenderer {
     prog.setViewProjMatrix(viewProj);
     prog.setGeometryColor(color);
     prog.setFrameNum(frame);
-
+    prog.setCamPos(camera.controls.eye);
+    
     for (let drawable of drawables) {
       prog.draw(drawable);
     }
