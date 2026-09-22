@@ -1,21 +1,21 @@
-import {vec3} from 'gl-matrix';
-import Stats from 'stats-js';
-import * as DAT from 'dat.gui';
-import Icosphere from './geometry/Icosphere';
-import Square from './geometry/Square';
-import OpenGLRenderer from './rendering/gl/OpenGLRenderer';
-import Camera from './Camera';
-import {setGL} from './globals';
-import ShaderProgram, {Shader} from './rendering/gl/ShaderProgram';
+import { vec3 } from "gl-matrix";
+import Stats from "stats-js";
+import * as DAT from "dat.gui";
+import Icosphere from "./geometry/Icosphere";
+import Square from "./geometry/Square";
+import OpenGLRenderer from "./rendering/gl/OpenGLRenderer";
+import Camera from "./Camera";
+import { setGL } from "./globals";
+import ShaderProgram, { Shader } from "./rendering/gl/ShaderProgram";
 
-import lambertVertSource from './shaders/lambert-vert.glsl?raw';
-import lambertFragSource from './shaders/lambert-frag.glsl?raw';
+import lambertVertSource from "./shaders/lambert-vert.glsl?raw";
+import lambertFragSource from "./shaders/lambert-frag.glsl?raw";
 
 // Define an object with application parameters and button callbacks
 // This will be referred to by dat.GUI's functions that add GUI elements.
 const controls = {
   tesselations: 5,
-  'Load Scene': loadScene, // A function pointer, essentially
+  "Load Scene": loadScene, // A function pointer, essentially
 };
 
 let icosphere: Icosphere;
@@ -33,21 +33,21 @@ function main() {
   // Initial display for framerate
   const stats = Stats();
   stats.setMode(0);
-  stats.domElement.style.position = 'absolute';
-  stats.domElement.style.left = '0px';
-  stats.domElement.style.top = '0px';
+  stats.domElement.style.position = "absolute";
+  stats.domElement.style.left = "0px";
+  stats.domElement.style.top = "0px";
   document.body.appendChild(stats.domElement);
 
   // Add controls to the gui
   const gui = new DAT.GUI();
-  gui.add(controls, 'tesselations', 0, 8).step(1);
-  gui.add(controls, 'Load Scene');
+  gui.add(controls, "tesselations", 0, 8).step(1);
+  gui.add(controls, "Load Scene");
 
   // get canvas and webgl context
-  const canvas = <HTMLCanvasElement> document.getElementById('canvas');
-  const gl = <WebGL2RenderingContext> canvas.getContext('webgl2');
+  const canvas = <HTMLCanvasElement>document.getElementById("canvas");
+  const gl = <WebGL2RenderingContext>canvas.getContext("webgl2");
   if (!gl) {
-    alert('WebGL 2 not supported!');
+    alert("WebGL 2 not supported!");
   }
   // `setGL` is a function imported above which sets the value of `gl` in the `globals.ts` module.
   // Later, we can import `gl` from `globals.ts` to access it
@@ -67,33 +67,44 @@ function main() {
     new Shader(gl.FRAGMENT_SHADER, lambertFragSource),
   ]);
 
+  let frame = 0;
+
   // This function will be called every frame
   function tick() {
     camera.update();
     stats.begin();
     gl.viewport(0, 0, window.innerWidth, window.innerHeight);
     renderer.clear();
-    if(controls.tesselations != prevTesselations)
-    {
+    if (controls.tesselations != prevTesselations) {
       prevTesselations = controls.tesselations;
       icosphere = new Icosphere(vec3.fromValues(0, 0, 0), 1, prevTesselations);
       icosphere.create();
     }
-    renderer.render(camera, lambert, [
-      icosphere,
-      // square,
-    ]);
+    renderer.render(
+      camera,
+      lambert,
+      [
+        icosphere,
+        // square,
+      ],
+      frame,
+    );
     stats.end();
+    frame++;
 
     // Tell the browser to call `tick` again whenever it renders a new frame
     requestAnimationFrame(tick);
   }
 
-  window.addEventListener('resize', function() {
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    camera.setAspectRatio(window.innerWidth / window.innerHeight);
-    camera.updateProjectionMatrix();
-  }, false);
+  window.addEventListener(
+    "resize",
+    function () {
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      camera.setAspectRatio(window.innerWidth / window.innerHeight);
+      camera.updateProjectionMatrix();
+    },
+    false,
+  );
 
   renderer.setSize(window.innerWidth, window.innerHeight);
   camera.setAspectRatio(window.innerWidth / window.innerHeight);
