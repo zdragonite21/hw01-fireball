@@ -91,6 +91,18 @@ float fbm(vec3 x, int octaves) {
 }
 
 vec3 displace(vec3 pos) {
+    float strength = pos.y * 0.5 + 0.5;
+    float x = (1.0 - length(pos.xz));
+    pos += strength * vec3(0, 1, 0) * x;
+
+    return pos;
+}
+
+vec3 editNormal(vec3 p2, vec3 n) {
+    return n;
+}
+
+vec3 perturb(vec3 pos, vec3 n) {
     const int step = 20;
     const float scale = 3.0;
     const int octaves = 3;
@@ -100,9 +112,6 @@ vec3 displace(vec3 pos) {
     float strength = pos.y * 0.5 + 0.5;
     vec3 s = pos + vec3(time);
     s *= scale;
-
-    float x = (1.0 - length(pos.xz));
-    pos += strength * vec3(0, 1, 0) * x;
 
     float offset = fbm(s, octaves);
     offset = offset * 0.5 + 0.5;
@@ -121,10 +130,13 @@ void main()
 
     vec3 p = vs_Pos.xyz;
     vec3 p2 = displace(p);
+    vec3 n = invTranspose * vec3(vs_Nor);
+    n = editNormal(p2, n);
+    vec3 p3 = perturb(p2, n);
 
     // compute new normal
     float eps = 0.1;
-    vec3 n = invTranspose * vec3(vs_Nor);
+    
     vec3 tan = cross(n, vec3(0, 0, 1));
     if (length(tan) < 0.001)
     {
@@ -133,11 +145,11 @@ void main()
     tan = normalize(tan);
     vec3 bit = normalize(cross(n, tan));
 
-    vec3 dtan = displace(p + eps * tan) - p2;
-    vec3 dbit = displace(p + eps * bit) - p2;
+    vec3 dtan = displace(p + eps * tan) - p3;
+    vec3 dbit = displace(p + eps * bit) - p3;
     fs_Nor = vec4(normalize(cross(dtan, dbit)), 0.0);
 
-    vec4 modelposition = u_Model * vec4(p2, 1.0); // Temporarily store the transformed vertex positions for use below
+    vec4 modelposition = u_Model * vec4(p3, 1.0); // Temporarily store the transformed vertex positions for use below
     fs_posW = modelposition;
     gl_Position = u_ViewProj * modelposition; // gl_Position is a built-in variable of OpenGL which is
     // used to render the final positions of the geometry's vertices
