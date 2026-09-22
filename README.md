@@ -1,9 +1,7 @@
 # HW 1: WebGL Fireball
 **Live Demo: https://zdragonite21.github.io/hw01-fireball/**
-<p align="center">
-  <img width="360" height="360" src="fireball.png">
-</p>
-<p align="center">(source: Aidan Gideon, CIS 5660 Fall 2025)</p>
+
+![Fireball demo](images/fire.gif)
 
 ## Objective
 Get comfortable with using WebGL and its shaders to generate an interesting 3D, continuous surface using a multi-octave noise algorithm.
