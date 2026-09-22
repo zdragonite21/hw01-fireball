@@ -51,7 +51,7 @@ void main()
     colorRamp[0] = ColorStep(vec3(0.97, 0.22, 0), 0.0);
     colorRamp[1] = ColorStep(vec3(1.0, 0.5, .15), 0.04);
     colorRamp[2] = ColorStep(vec3(0.97, 0.87, .365), 0.175);
-    colorRamp[3] = ColorStep(vec3(1.0, 0.97, .58), 0.54);
+    colorRamp[3] = ColorStep(vec3(1.0, 0.97, .58), 0.541);
 
     const float ior = 1.5;
     vec3 v = normalize(u_CamPos - fs_posW.xyz);
