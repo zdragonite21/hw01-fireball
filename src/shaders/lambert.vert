@@ -35,9 +35,7 @@ const vec4 lightPos = vec4(5, 5, 3, 1); //The position of our virtual light, whi
 //the geometry in the fragment shader.
 
 // Matrix for breaking grid alignment in 3D noise
-const mat3 m3 = mat3(0.00, 0.80, 0.60,
-        -0.80, 0.36, -0.48,
-        -0.60, -0.48, 0.64);
+const mat3 m3 = mat3(0.00, 0.80, 0.60, -0.80, 0.36, -0.48, -0.60, -0.48, 0.64);
 
 float hash3Scalar(vec3 p3) {
     p3 = fract(p3 * 0.1031);
@@ -46,8 +44,7 @@ float hash3Scalar(vec3 p3) {
 }
 
 // from IQ's blog
-float noised1(in vec3 x)
-{
+float noised1(in vec3 x) {
     vec3 p = floor(x);
     vec3 w = fract(x);
 
@@ -81,7 +78,7 @@ float fbm(vec3 x, int octaves) {
     float f = 2.0;
     float a = 0.5;
 
-    for (int i = 1; i <= octaves; i++) {
+    for(int i = 1; i <= octaves; i++) {
         h += noised1(x) * a;
         a *= 0.5;
         x *= m3 * f;
@@ -90,36 +87,77 @@ float fbm(vec3 x, int octaves) {
     return h;
 }
 
-vec3 displace(vec3 pos) {
-    float strength = pos.y * 0.5 + 0.5;
-    float x = (1.0 - length(pos.xz));
-    pos += strength * vec3(0, 1, 0) * x;
+struct Surface {
+    vec3 p;
+    vec3 n;
+};
 
-    return pos;
+Surface displace(Surface s) {
+    float strength = s.p.y * 0.5 + 0.5;
+    float r = length(s.p.xz);
+    float x = 1.0 - r;
+    float f = strength * x;
+    vec3 pos = s.p;
+    pos.y += f;
+
+    float dfdx = -strength * s.p.x / max(r, 0.00001);
+    float dfdz = -strength * s.p.z / max(r, 0.00001);
+    float dfdy = 0.5 * x;
+
+    vec3 nor = normalize(
+        vec3(s.n.x - dfdx * s.n.y / (1.0 + dfdy), 
+        s.n.y / (1.0 + dfdy), 
+        s.n.z - dfdz * s.n.y / (1.0 + dfdy)));
+
+    return Surface(pos, nor);
 }
 
-vec3 editNormal(vec3 p2, vec3 n) {
-    return n;
+vec3 editNormal(vec3 p, vec3 n) {
+    float offset = -4.0;
+    vec3 target = vec3(0.0, offset, 0.0);
+    vec3 dir = normalize(p - target);
+    
+    if (dot(n + dir, n + dir) < 0.001) {
+        return vec3(1, 0, 0);
+    }
+
+    return normalize(n + dir);
 }
 
-vec3 perturb(vec3 pos, vec3 n) {
+// vec3 perturb(vec3 pos, vec3 n) {
+//     const int step = 20;
+//     const float scale = 3.0;
+//     const int octaves = 3;
+
+//     float frame = floor(float(u_Frame) / float(step)) * float(step);
+//     float time = frame * 0.005;
+//     float strength = pos.y * 0.5 + 0.5;
+//     vec3 s = pos + vec3(time);
+//     s *= scale;
+
+//     float offset = fbm(s, octaves);
+//     offset = offset * 0.5 + 0.5;
+//     return pos + vec3(0, 1, 0) * offset * strength;
+// }
+
+vec3 perturb(vec3 p, vec3 n) {
     const int step = 20;
-    const float scale = 3.0;
-    const int octaves = 3;
+    const float scale = 2.0;
+    const int octaves = 4;
 
     float frame = floor(float(u_Frame) / float(step)) * float(step);
     float time = frame * 0.005;
-    float strength = pos.y * 0.5 + 0.5;
-    vec3 s = pos + vec3(time);
+
+    vec3 s = p;
+    s.y -= time;
     s *= scale;
 
     float offset = fbm(s, octaves);
     offset = offset * 0.5 + 0.5;
-    return pos + vec3(0, 1, 0) * offset * strength;
+    return p + n * offset;
 }
 
-void main()
-{
+void main() {
     fs_Col = vs_Col; // Pass the vertex colors to the fragment shader for interpolation
 
     mat3 invTranspose = mat3(u_ModelInvTr);
@@ -129,27 +167,30 @@ void main()
     // the model matrix.
 
     vec3 p = vs_Pos.xyz;
-    vec3 p2 = displace(p);
     vec3 n = invTranspose * vec3(vs_Nor);
-    n = editNormal(p2, n);
-    vec3 p3 = perturb(p2, n);
+    Surface s = displace(Surface(p, n));
+    p = s.p;
+    n = s.n;
+    n = editNormal(p, n);
+    vec3 p2 = perturb(p, n);
 
     // compute new normal
     float eps = 0.1;
-    
+
     vec3 tan = cross(n, vec3(0, 0, 1));
-    if (length(tan) < 0.001)
-    {
+    if(length(tan) < 0.001) {
         tan = cross(n, vec3(0, 1, 0));
     }
     tan = normalize(tan);
     vec3 bit = normalize(cross(n, tan));
 
-    vec3 dtan = displace(p + eps * tan) - p3;
-    vec3 dbit = displace(p + eps * bit) - p3;
+    vec3 dtan = perturb(p + eps * tan, n) - p2;
+    vec3 dbit = perturb(p + eps * bit, n) - p2;
     fs_Nor = vec4(normalize(cross(dtan, dbit)), 0.0);
 
-    vec4 modelposition = u_Model * vec4(p3, 1.0); // Temporarily store the transformed vertex positions for use below
+    // fs_Nor = vec4(n, 0.0);
+
+    vec4 modelposition = u_Model * vec4(p2, 1.0); // Temporarily store the transformed vertex positions for use below
     fs_posW = modelposition;
     gl_Position = u_ViewProj * modelposition; // gl_Position is a built-in variable of OpenGL which is
     // used to render the final positions of the geometry's vertices
