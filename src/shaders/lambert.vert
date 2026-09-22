@@ -113,7 +113,7 @@ Surface displace(Surface s) {
 }
 
 vec3 editNormal(vec3 p, vec3 n) {
-    float offset = -4.0;
+    float offset = -10.0;
     vec3 target = vec3(0.0, offset, 0.0);
     vec3 dir = normalize(p - target);
     
@@ -142,19 +142,23 @@ vec3 editNormal(vec3 p, vec3 n) {
 
 vec3 perturb(vec3 p, vec3 n) {
     const int step = 20;
-    const float scale = 2.0;
-    const int octaves = 4;
+    const float scale = 3.0;
+    const int octaves = 2;
+    const float sinEffect = .3;
 
     float frame = floor(float(u_Frame) / float(step)) * float(step);
     float time = frame * 0.005;
 
+
+    float strength = 1.8 * (noised1(vec3(time) * 0.3) * sinEffect + (1. - sinEffect));
+    
     vec3 s = p;
-    s.y -= time;
+    s.y -= time * 1.5;
     s *= scale;
 
     float offset = fbm(s, octaves);
     offset = offset * 0.5 + 0.5;
-    return p + n * offset;
+    return p + n * offset * strength;
 }
 
 void main() {
@@ -167,29 +171,33 @@ void main() {
     // the model matrix.
 
     vec3 p = vs_Pos.xyz;
-    vec3 n = invTranspose * vec3(vs_Nor);
+    vec3 n = normalize(vs_Nor.xyz);
     Surface s = displace(Surface(p, n));
     p = s.p;
-    n = s.n;
-    n = editNormal(p, n);
+    n = editNormal(p, s.n);
     vec3 p2 = perturb(p, n);
 
     // compute new normal
     float eps = 0.1;
-
-    vec3 tan = cross(n, vec3(0, 0, 1));
+    vec3 tan = cross(s.n, vec3(0, 0, 1));
     if(length(tan) < 0.001) {
-        tan = cross(n, vec3(0, 1, 0));
+        tan = cross(s.n, vec3(0, 1, 0));
     }
     tan = normalize(tan);
-    vec3 bit = normalize(cross(n, tan));
+    vec3 bit = normalize(cross(s.n, tan));
 
-    vec3 dtan = perturb(p + eps * tan, n) - p2;
-    vec3 dbit = perturb(p + eps * bit, n) - p2;
-    fs_Nor = vec4(normalize(cross(dtan, dbit)), 0.0);
+    vec3 pt = s.p + eps * tan;
+    vec3 pb = s.p + eps * bit;
 
-    // fs_Nor = vec4(n, 0.0);
+    vec3 nt = editNormal(pt, s.n);
+    vec3 nb = editNormal(pb, s.n);
 
+    vec3 dtan = perturb(pt, nt) - p2;
+    vec3 dbit = perturb(pb, nb) - p2;
+
+    vec3 finalN = normalize(cross(dtan, dbit));
+
+    fs_Nor = vec4(normalize(invTranspose * finalN), 0.0);
     vec4 modelposition = u_Model * vec4(p2, 1.0); // Temporarily store the transformed vertex positions for use below
     fs_posW = modelposition;
     gl_Position = u_ViewProj * modelposition; // gl_Position is a built-in variable of OpenGL which is

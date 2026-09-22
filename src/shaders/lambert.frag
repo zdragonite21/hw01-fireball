@@ -30,28 +30,35 @@ struct ColorStep {
 
 ColorStep colorRamp[4];
 
-float fresnelSchlick(float cosTheta, float ior)
-{
+float fresnelSchlick(float cosTheta, float ior) {
     float x = (1.0 - ior) / (1.0 + ior);
     float f0 = x * x;
     return f0 + (1.0 - f0) * pow(1.0 - cosTheta, 5.0);
 }
 
 vec3 getColorRamp(float t) {
-    for (int i = 0; i < 3; ++i) {
-        if (t <= colorRamp[i + 1].t) {
+    for(int i = 0; i < 3; ++i) {
+        if(t <= colorRamp[i + 1].t) {
             return colorRamp[i].color;
         }
     }
     return colorRamp[3].color;
 }
 
-void main()
-{
+vec3 saturate(vec3 color, float sat) {
+    const vec3 luminance = vec3(0.2125, 0.7154, 0.0721);
+    vec3 grayscale = vec3(dot(color, luminance));
+    
+    return mix(grayscale, color, sat);
+}
+
+void main() {
+    const float maxWhite = 5.0;
+
     colorRamp[0] = ColorStep(vec3(0.97, 0.22, 0), 0.0);
-    colorRamp[1] = ColorStep(vec3(1.0, 0.5, .15), 0.045);
-    colorRamp[2] = ColorStep(vec3(0.97, 0.87, .365), 0.7);
-    colorRamp[3] = ColorStep(vec3(1.0, 0.97, .58), 0.7);
+    colorRamp[1] = ColorStep(vec3(1.0, 0.5, .15), 0.041);
+    colorRamp[2] = ColorStep(vec3(0.97, 0.87, .365), 0.41);
+    colorRamp[3] = ColorStep(vec3(1.0, 0.97, .58), 0.9);
 
     const float ior = 1.5;
     vec3 v = normalize(u_CamPos - fs_posW.xyz);
@@ -59,8 +66,20 @@ void main()
     float cosTheta = max(dot(n, v), 0.0);
     float fresnel = fresnelSchlick(cosTheta, ior);
 
-    vec3 color = getColorRamp(fresnel);
+    float emission = 2.0;
+
+    vec3 hdrColor = getColorRamp(fresnel) * emission;
+    vec3 mapped = (hdrColor * (1.0 + (hdrColor / (maxWhite * maxWhite)))) / (1.0 + hdrColor);
+    mapped = saturate(mapped, 1.3);
+    mapped = pow(mapped, vec3(2));
+
+    mapped = pow(mapped, vec3(1.0 / 2.2));
+
+    float dist = length(fs_posW.xyz);
+    float glow = exp(-dist * 2.0);
+    vec3 glowColor = vec3(1.0, 0.5, 0.1);
+    mapped += glowColor * glow * 10.0;
 
     // Compute final shaded color
-    out_Col = vec4(color, 1.0);
+    out_Col = vec4(mapped, 1.0);
 }
