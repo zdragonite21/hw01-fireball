@@ -31,6 +31,10 @@ class ShaderProgram {
   unifColor: WebGLUniformLocation;
   unifFrame: WebGLUniformLocation;
   unifCamPos: WebGLUniformLocation;
+  unifStep: WebGLUniformLocation;
+  unifScale: WebGLUniformLocation;
+  unifOctaves: WebGLUniformLocation;
+  unifSinEffect: WebGLUniformLocation;
 
   constructor(shaders: Array<Shader>) {
     this.prog = gl.createProgram();
@@ -52,6 +56,10 @@ class ShaderProgram {
     this.unifColor = gl.getUniformLocation(this.prog, "u_Color");
     this.unifFrame = gl.getUniformLocation(this.prog, "u_Frame");
     this.unifCamPos = gl.getUniformLocation(this.prog, "u_CamPos");
+    this.unifStep = gl.getUniformLocation(this.prog, "u_Step");
+    this.unifScale = gl.getUniformLocation(this.prog, "u_Scale");
+    this.unifOctaves = gl.getUniformLocation(this.prog, "u_Octaves");
+    this.unifSinEffect = gl.getUniformLocation(this.prog, "u_SinEffect");
   }
 
   use() {
@@ -94,6 +102,14 @@ class ShaderProgram {
     if (this.unifCamPos !== -1) {
       gl.uniform3fv(this.unifCamPos, camPos);
     }
+  }
+
+  setNoiseParameters(step: number, scale: number, octaves: number, sinEffect: number) {
+    this.use();
+    gl.uniform1i(this.unifStep, step);
+    gl.uniform1f(this.unifScale, scale);
+    gl.uniform1i(this.unifOctaves, octaves);
+    gl.uniform1f(this.unifSinEffect, sinEffect);
   }
 
   setGeometryColor(color: vec4) {

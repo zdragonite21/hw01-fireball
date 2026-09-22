@@ -20,6 +20,10 @@ uniform mat4 u_ViewProj; // The matrix that defines the camera's transformation.
 // but in HW3 you'll have to generate one yourself
 
 uniform uint u_Frame;
+uniform int u_Step;
+uniform float u_Scale;
+uniform int u_Octaves;
+uniform float u_SinEffect;
 
 in vec4 vs_Pos; // The array of vertex positions passed to the shader
 
@@ -141,22 +145,17 @@ vec3 editNormal(vec3 p, vec3 n) {
 // }
 
 vec3 perturb(vec3 p, vec3 n) {
-    const int step = 20;
-    const float scale = 3.0;
-    const int octaves = 2;
-    const float sinEffect = .3;
-
-    float frame = floor(float(u_Frame) / float(step)) * float(step);
+    float frame = floor(float(u_Frame) / float(u_Step)) * float(u_Step);
     float time = frame * 0.005;
 
 
-    float strength = 1.8 * (noised1(vec3(time) * 0.3) * sinEffect + (1. - sinEffect));
+    float strength = 1.8 * (noised1(vec3(time) * 0.3) * u_SinEffect + (1. - u_SinEffect));
     
     vec3 s = p;
     s.y -= time * 1.5;
-    s *= scale;
+    s *= u_Scale;
 
-    float offset = fbm(s, octaves);
+    float offset = fbm(s, u_Octaves);
     offset = offset * 0.5 + 0.5;
     return p + n * offset * strength;
 }

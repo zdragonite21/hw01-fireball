@@ -15,6 +15,10 @@ import lambertFragSource from "./shaders/lambert.frag?raw";
 // This will be referred to by dat.GUI's functions that add GUI elements.
 const controls = {
   tesselations: 5,
+  step: 20,
+  scale: 3.0,
+  octaves: 2,
+  sinEffect: 0.3,
   "Load Scene": loadScene, // A function pointer, essentially
 };
 
@@ -41,6 +45,10 @@ function main() {
   // Add controls to the gui
   const gui = new DAT.GUI();
   gui.add(controls, "tesselations", 0, 8).step(1);
+  gui.add(controls, "step", 1, 100).step(1);
+  gui.add(controls, "scale", 0.1, 10);
+  gui.add(controls, "octaves", 1, 8).step(1);
+  gui.add(controls, "sinEffect", 0, 1);
   gui.add(controls, "Load Scene");
 
   // get canvas and webgl context
@@ -80,6 +88,7 @@ function main() {
       icosphere = new Icosphere(vec3.fromValues(0, 0, 0), 1, prevTesselations);
       icosphere.create();
     }
+    lambert.setNoiseParameters(controls.step, controls.scale, controls.octaves, controls.sinEffect);
     renderer.render(
       camera,
       lambert,
