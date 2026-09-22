@@ -28,7 +28,6 @@ in vec4 vs_Nor; // The array of vertex normals passed to the shader
 in vec4 vs_Col; // The array of vertex colors passed to the shader.
 
 out vec4 fs_Nor; // The array of normals that has been transformed by u_ModelInvTr. This is implicitly passed to the fragment shader.
-out vec4 fs_LightVec; // The direction in which our virtual light lies, relative to each vertex. This is implicitly passed to the fragment shader.
 out vec4 fs_Col; // The color of each vertex. This is implicitly passed to the fragment shader.
 out vec4 fs_posW;
 
@@ -122,28 +121,24 @@ void main()
 
     vec3 p = vs_Pos.xyz;
     vec3 p2 = displace(p);
-    float eps = 0.01;
 
+    // compute new normal
+    float eps = 0.1;
     vec3 n = invTranspose * vec3(vs_Nor);
-    vec3 tan = normalize(cross(n, vec3(0, 0, 1)));
-    if (length(tan) < 0.01)
+    vec3 tan = cross(n, vec3(0, 0, 1));
+    if (length(tan) < 0.001)
     {
-        tan = normalize(cross(n, vec3(0, 1, 0)));
+        tan = cross(n, vec3(0, 1, 0));
     }
+    tan = normalize(tan);
     vec3 bit = normalize(cross(n, tan));
 
     vec3 dtan = displace(p + eps * tan) - p2;
     vec3 dbit = displace(p + eps * bit) - p2;
-
     fs_Nor = vec4(normalize(cross(dtan, dbit)), 0.0);
 
-
-    // vec3 pos = vs_Pos.xyz;
     vec4 modelposition = u_Model * vec4(p2, 1.0); // Temporarily store the transformed vertex positions for use below
-
-    fs_LightVec = lightPos - modelposition; // Compute the direction in which the light source lies
     fs_posW = modelposition;
-
     gl_Position = u_ViewProj * modelposition; // gl_Position is a built-in variable of OpenGL which is
     // used to render the final positions of the geometry's vertices
 }

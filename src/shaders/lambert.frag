@@ -17,7 +17,6 @@ uniform vec3 u_CamPos;
 // These are the interpolated values out of the rasterizer, so you can't know
 // their specific values without knowing the vertices that contributed to them
 in vec4 fs_Nor;
-in vec4 fs_LightVec;
 in vec4 fs_Col;
 in vec4 fs_posW;
 
@@ -36,24 +35,12 @@ void main()
     // Material base color (before shading)
         vec4 diffuseColor = u_Color;
 
-        // Calculate the diffuse term for Lambert shading
-        float diffuseTerm = dot(normalize(fs_Nor), normalize(fs_LightVec));
-        // Avoid negative lighting values
-        // diffuseTerm = clamp(diffuseTerm, 0, 1);
-
         const float ior = 1.5;
         vec3 v = normalize(u_CamPos - fs_posW.xyz);
         vec3 n = normalize(fs_Nor.xyz);
         float cosTheta = max(dot(n, v), 0.0);
         float fresnel =  fresnelSchlick(cosTheta, ior);
 
-        float ambientTerm = 0.2;
-
-        float lightIntensity = diffuseTerm + ambientTerm;   //Add a small float value to the color multiplier
-                                                            //to simulate ambient lighting. This ensures that faces that are not
-                                                            //lit by our point light are not completely black.
-
         // Compute final shaded color
-        // out_Col = vec4(diffuseColor.rgb * cosTheta, diffuseColor.a);
         out_Col = vec4(vec3(fresnel), 1.0);
 }
