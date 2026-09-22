@@ -8,8 +8,8 @@ import Camera from "./Camera";
 import { setGL } from "./globals";
 import ShaderProgram, { Shader } from "./rendering/gl/ShaderProgram";
 
-import lambertVertSource from "./shaders/lambert-vert.glsl?raw";
-import lambertFragSource from "./shaders/lambert-frag.glsl?raw";
+import lambertVertSource from "./shaders/lambert.vert?raw";
+import lambertFragSource from "./shaders/lambert.frag?raw";
 
 // Define an object with application parameters and button callbacks
 // This will be referred to by dat.GUI's functions that add GUI elements.

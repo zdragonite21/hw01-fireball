@@ -34,8 +34,78 @@ out vec4 fs_Col;            // The color of each vertex. This is implicitly pass
 const vec4 lightPos = vec4(5, 5, 3, 1); //The position of our virtual light, which is used to compute the shading of
                                         //the geometry in the fragment shader.
 
+// Matrix for breaking grid alignment in 3D noise
+const mat3 m3 = mat3( 0.00,  0.80,  0.60,
+                     -0.80,  0.36, -0.48,
+                     -0.60, -0.48,  0.64 );
+
+float hash3Scalar(vec3 p3) {
+    p3 = fract(p3 * 0.1031);
+    p3 += dot(p3, p3.yzx + 33.33);
+    return fract((p3.x + p3.y) * p3.z);
+}
+
+// from IQ's blog
+float noised1( in vec3 x )
+{
+    vec3 p = floor(x);
+    vec3 w = fract(x);
+
+    vec3 u = w*w*w*(w*(w*6.0-15.0)+10.0);
+    // vec3 du = 30.0*w*w*(w*(w-1.0)+2.0);
+    vec3 du = 30.0*w*w*(w*(w-2.0)+1.0);
+
+    float a = hash3Scalar( p+vec3(0,0,0) );
+    float b = hash3Scalar( p+vec3(1,0,0) );
+    float c = hash3Scalar( p+vec3(0,1,0) );
+    float d = hash3Scalar( p+vec3(1,1,0) );
+    float e = hash3Scalar( p+vec3(0,0,1) );
+    float f = hash3Scalar( p+vec3(1,0,1) );
+    float g = hash3Scalar( p+vec3(0,1,1) );
+    float h = hash3Scalar( p+vec3(1,1,1) );
+
+    float k0 =   a;
+    float k1 =   b - a;
+    float k2 =   c - a;
+    float k3 =   e - a;
+    float k4 =   a - b - c + d;
+    float k5 =   a - c - e + g;
+    float k6 =   a - b - e + f;
+    float k7 = - a + b + c - d + e - f - g + h;
+
+    return -1.0+2.0*(k0 + k1*u.x + k2*u.y + k3*u.z + k4*u.x*u.y + k5*u.y*u.z + k6*u.z*u.x + k7*u.x*u.y*u.z);
+}
+
+float fbm(vec3 x, int octaves) {
+    float h = 0.0;
+    float f = 2.0;
+    float a = 0.5;
+
+    for (int i = 1; i <= octaves; i++) {
+        h += noised1(x) * a;
+        a *= 0.5;
+        x *= m3 * f;
+    }
+
+    return h;
+}
+
 vec3 displace(vec3 pos) {
-    return pos + vec3(sin(float(u_Frame) / 100.0)) * 1.0;
+    const int step = 20;
+    const float scale = 10.0;
+
+    float frame = floor(float(u_Frame) / float(step)) * float(step);
+    float time = frame * 0.005;
+    float strength = pos.y * 0.5 + 0.5;
+    vec3 s = pos + vec3(time);
+    s *= scale;
+
+    float x = (1.0 - length(pos.xz));
+    pos += strength * vec3(0, 1, 0) * x;
+
+    float offset = fbm(s, 3);
+    offset = offset * 0.5 + 0.5;
+    return pos + vec3(0, 1, 0) * offset * strength;
 }
 
 void main()
@@ -50,8 +120,8 @@ void main()
                                                             // the model matrix.
 
 
-    vec4 modelposition = u_Model * vs_Pos;   // Temporarily store the transformed vertex positions for use below
-    modelposition.xyz = displace(modelposition.xyz);
+    vec3 pos = displace(vs_Pos.xyz);
+    vec4 modelposition = u_Model * vec4(pos, 1.0);   // Temporarily store the transformed vertex positions for use below
 
     fs_LightVec = lightPos - modelposition;  // Compute the direction in which the light source lies
 
