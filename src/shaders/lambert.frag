@@ -21,7 +21,14 @@ in vec4 fs_Col;
 in vec4 fs_posW;
 
 out vec4 out_Col; // This is the final output color that you will see on your
-                  // screen for the pixel that is currently being processed.
+// screen for the pixel that is currently being processed.
+
+struct ColorStep {
+    vec3 color;
+    float t;
+};
+
+ColorStep colorRamp[4];
 
 float fresnelSchlick(float cosTheta, float ior)
 {
@@ -30,17 +37,30 @@ float fresnelSchlick(float cosTheta, float ior)
     return f0 + (1.0 - f0) * pow(1.0 - cosTheta, 5.0);
 }
 
+vec3 getColorRamp(float t) {
+    for (int i = 0; i < 3; ++i) {
+        if (t <= colorRamp[i + 1].t) {
+            return colorRamp[i].color;
+        }
+    }
+    return colorRamp[3].color;
+}
+
 void main()
 {
-    // Material base color (before shading)
-        vec4 diffuseColor = u_Color;
+    colorRamp[0] = ColorStep(vec3(0.97, 0.22, 0), 0.0);
+    colorRamp[1] = ColorStep(vec3(1.0, 0.5, .15), 0.04);
+    colorRamp[2] = ColorStep(vec3(0.97, 0.87, .365), 0.175);
+    colorRamp[3] = ColorStep(vec3(1.0, 0.97, .58), 0.54);
 
-        const float ior = 1.5;
-        vec3 v = normalize(u_CamPos - fs_posW.xyz);
-        vec3 n = normalize(fs_Nor.xyz);
-        float cosTheta = max(dot(n, v), 0.0);
-        float fresnel =  fresnelSchlick(cosTheta, ior);
+    const float ior = 1.5;
+    vec3 v = normalize(u_CamPos - fs_posW.xyz);
+    vec3 n = normalize(fs_Nor.xyz);
+    float cosTheta = max(dot(n, v), 0.0);
+    float fresnel = fresnelSchlick(cosTheta, ior);
 
-        // Compute final shaded color
-        out_Col = vec4(vec3(fresnel), 1.0);
+    vec3 color = getColorRamp(fresnel);
+
+    // Compute final shaded color
+    out_Col = vec4(color, 1.0);
 }
